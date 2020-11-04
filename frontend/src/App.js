@@ -14,6 +14,25 @@ class App extends React.Component{
       editing:false
     }
     this.fetchTasks = this.fetchTasks.bind(this)
+    this.handleChange = this.handleChange.bind(this)
+    this.handleSubmit = this.handleSubmit.bind(this)
+    this.getCookie = this.getCookie.bind(this)
+  }
+
+  getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
   }
 
   componentWillMount(){
@@ -32,6 +51,49 @@ class App extends React.Component{
     )
   }
 
+  handleChange(e){
+    var name = e.target.name
+    var value = e.target.value
+    console.log('Name:', name)
+    console.log('Value:', value)
+
+    this.setState({
+      activeItem:{
+        ...this.state.activeItem,
+        title:value
+      }
+    })
+  }
+
+  handleSubmit(e){
+    e.preventDefault()
+    console.log('ITEM', this.state.activeItem)
+
+    var csrftoken = this.getCookie('csrftoken')
+
+    var url = 'http://localhost:8000/api/task-create/'
+    fetch(url, {
+      method:'POST',
+      headers:{
+        'Content-type':'application/json',
+        'X-CSRFToken':csrftoken
+      },
+      body:JSON.stringify(this.state.activeItem)
+    }).then(response => {
+      this.fetchTasks()
+      this.setState({
+        activeItem:{
+        id:null,
+        title:'',
+        completed:false,
+      }
+      })
+    }).catch(function(error){
+      console.log('ERROR:', error)
+    })
+
+  }
+
   render(){
     var tasks = this.state.todoList
     return(
@@ -40,10 +102,10 @@ class App extends React.Component{
         <div id="task-container">
 
           <div id="form-wrapper">
-            <form id="form">
+            <form onSubmit={this.handleSubmit} id="form">
               <div className="flex-wrapper">
                 <div style={{flex: 6}}>
-                  <input className="form-control" id="title" type="text" name="title" placeholder="Add Task" />
+                  <input onChange={this.handleChange} className="form-control" id="title" value={this.state.activeItem.title} type="text" name="title" placeholder="Add Task" />
                 </div>
                 <div style={{flex: 1}}>
                   <input id="submit" className="btn btn-warning" type="submit" name="Add"/>
@@ -62,7 +124,7 @@ class App extends React.Component{
                     <button className="btn btn-sm btn-outline-info">Edit</button>
                   </div>
                   <div style={{flex: 1}}>
-                  <button className="btn btn-sm btn-outline-dark delete">Delete</button>
+                    <button className="btn btn-sm btn-outline-dark delete">Delete</button>
                   </div>
                 </div>
               )
